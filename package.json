@@ -1,15 +1,24 @@
 {
   "name": "jarvis",
   "version": "1.0.0",
-  "description": "",
+  "description": "JARVIS Always-On Voice Assistant + Persistent Conversation Mode for Windows",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "dev": "node index.js --cli",
+    "setup-startup": "node index.js --setup-startup",
+    "disable-startup": "node index.js --disable-startup"
   },
-  "keywords": [],
+  "keywords": [
+    "jarvis",
+    "voice-assistant",
+    "ollama",
+    "qwen3",
+    "windows"
+  ],
   "author": "",
   "license": "ISC",
-  "type": "module",
   "dependencies": {
     "ollama": "^0.6.3"
   }
