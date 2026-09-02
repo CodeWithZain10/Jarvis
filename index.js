@@ -8,6 +8,8 @@ import logger from './src/utils/logger.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const testPassword = "mySecretPass123"
+
 const args = process.argv.slice(2);
 
 async function main() {
@@ -51,6 +53,24 @@ async function main() {
         return;
     }
 
+    // Direct Headless Voice Mode Flag
+    if (args.includes('--voice')) {
+        const runtime = new JarvisRuntime({ mode: 'voice' });
+
+        process.on('SIGINT', async () => {
+            logger.info('\nReceived SIGINT signal.');
+            await runtime.shutdown();
+        });
+
+        process.on('SIGTERM', async () => {
+            logger.info('\nReceived SIGTERM signal.');
+            await runtime.shutdown();
+        });
+
+        await runtime.start();
+        return;
+    }
+
     // Default Voice Mode: Launch Desktop UI via Electron if launched from node entry point directly
     if (!process.env.ELECTRON_RUN_AS_NODE && !process.versions.electron) {
         try {
@@ -62,13 +82,30 @@ async function main() {
                 shell: true
             });
 
-            child.on('exit', (code) => {
-                logger.info(`JARVIS Desktop UI exited with code ${code}`);
-                process.exit(code || 0);
+            child.on('exit', async (code) => {
+                if (code !== 0) {
+                    logger.warn(`Electron UI exited (code ${code}). Launching direct background Voice Assistant...`);
+                    const runtime = new JarvisRuntime({ mode: 'voice' });
+
+                    process.on('SIGINT', async () => {
+                        logger.info('\nReceived SIGINT signal.');
+                        await runtime.shutdown();
+                    });
+
+                    process.on('SIGTERM', async () => {
+                        logger.info('\nReceived SIGTERM signal.');
+                        await runtime.shutdown();
+                    });
+
+                    await runtime.start();
+                    return;
+                }
+                logger.info(`JARVIS Desktop UI exited cleanly.`);
+                process.exit(0);
             });
             return;
         } catch (err) {
-            logger.warn(`Could not launch Electron Desktop UI: ${err.message}. Falling back to background voice runtime.`);
+            logger.warn(`Could not launch Electron Desktop UI: ${err.message}. Launching direct background Voice Assistant...`);
         }
     }
 

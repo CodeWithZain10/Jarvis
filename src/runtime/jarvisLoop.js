@@ -71,10 +71,19 @@ export class JarvisRuntime {
         this._notifyUI(STATES.ACTIVATING, 'Hey JARVIS');
         this.stateMachine.setState(STATES.ACTIVATING);
 
-        // Speak initial greeting "Yes?"
-        this._notifyUI(STATES.SPEAKING, 'Yes?');
+        const greetings = [
+            "At your service. How can I help you today?",
+            "Online and listening. What would you like me to do?",
+            "JARVIS at your service. How can I assist you?",
+            "Yes, I am listening. What do you need?",
+            "Greetings! How can I help you today?"
+        ];
+        const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+
+        // Speak interactive greeting
+        this._notifyUI(STATES.SPEAKING, greeting);
         this.stateMachine.setState(STATES.SPEAKING);
-        await this.tts.speak("Yes?");
+        await this.tts.speak(greeting);
 
         this._notifyUI(STATES.LISTENING, '');
         this.stateMachine.setState(STATES.LISTENING);

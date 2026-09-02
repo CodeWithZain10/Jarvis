@@ -6,6 +6,7 @@ export const STATES = Object.freeze({
     ACTIVATING: 'ACTIVATING',
     LISTENING: 'LISTENING',
     PROCESSING: 'PROCESSING',
+    THINKING: 'THINKING',
     EXECUTING: 'EXECUTING',
     SPEAKING: 'SPEAKING',
     SHUTTING_DOWN: 'SHUTTING_DOWN',
@@ -59,6 +60,7 @@ export class RuntimeStateMachine {
             this.currentState === STATES.ACTIVATING ||
             this.currentState === STATES.LISTENING ||
             this.currentState === STATES.PROCESSING ||
+            this.currentState === STATES.THINKING ||
             this.currentState === STATES.EXECUTING ||
             this.currentState === STATES.SPEAKING
         );

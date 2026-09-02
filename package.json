@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
+    "voice": "node index.js --voice",
     "dev": "node index.js --cli",
     "setup-startup": "node index.js --setup-startup",
     "disable-startup": "node index.js --disable-startup"
