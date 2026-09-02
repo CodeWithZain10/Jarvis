@@ -227,8 +227,16 @@ export class JarvisRuntime {
                     return;
                 }
 
+                const lowerText = text.toLowerCase();
+                if (lowerText === 'exit' || lowerText === 'exit jarvis' || lowerText === 'stop') {
+                    logger.info('Exiting JARVIS via CLI.');
+                    rl.close();
+                    await this.shutdown();
+                    return;
+                }
+
                 if (this.stateMachine.isStandby()) {
-                    if (text.toLowerCase().includes('hey jarvis') || text.toLowerCase() === 'activate') {
+                    if (lowerText.includes('hey jarvis') || lowerText === 'activate') {
                         logger.info('JARVIS activated via CLI.');
                         this.stateMachine.setState(STATES.ACTIVATING);
                         console.log('JARVIS: Yes?');
