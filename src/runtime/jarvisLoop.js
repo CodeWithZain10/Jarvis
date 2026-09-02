@@ -12,6 +12,8 @@ import { StartupService } from '../system/startupService.js';
 export class JarvisRuntime {
     constructor(options = {}) {
         this.mode = options.mode || 'voice'; // 'voice' or 'cli'
+        this.onStateChangeCallback = options.onStateChange || null;
+
         this.stateMachine = new RuntimeStateMachine(STATES.STARTING);
         this.brain = new OllamaBrain();
         this.appTool = new ApplicationTool();
@@ -19,19 +21,26 @@ export class JarvisRuntime {
         this.wakeWord = new WakeWordService();
         this.stt = new SpeechToTextService();
         this.startupService = new StartupService();
-        
+
         this.isShuttingDown = false;
         this.healthCheckTimer = null;
+
+        // Wire state machine updates to UI callback
+        this.stateMachine.onStateChange(({ oldState, newState, payload }) => {
+            if (this.onStateChangeCallback) {
+                this.onStateChangeCallback({ oldState, newState, payload });
+            }
+        });
     }
 
     async start() {
-        logger.info('Initializing JARVIS Assistant...');
-        this.stateMachine.setState(STATES.STARTING);
+        logger.info('Initializing JARVIS Assistant v2...');
+        this._notifyUI(STATES.STARTING);
 
-        // Check Ollama connection on startup
+        // Non-blocking Ollama check
         const ollamaOk = await this.brain.checkAvailability();
         if (!ollamaOk) {
-            logger.warn('Ollama unavailable at startup. Will retry periodically in background.');
+            logger.warn('Ollama unavailable at startup. Starting background reconnect loop...');
             this._startOllamaHealthCheck();
         }
 
@@ -45,26 +54,29 @@ export class JarvisRuntime {
         if (this.mode === 'cli') {
             await this.runCliMode();
         } else {
+            this._notifyUI(STATES.STANDBY);
             this.stateMachine.setState(STATES.STANDBY);
             this.wakeWord.start();
-            logger.info('JARVIS is ready and in STANDBY. Say "Hey JARVIS" to activate.');
+            logger.info('JARVIS is ready in STANDBY mode. Say "Hey JARVIS" to activate.');
         }
     }
 
     /**
      * Called when wake word "Hey JARVIS" is detected.
-     * Transitions state from STANDBY to ACTIVE and runs persistent conversation loop.
      */
     async activateVoiceSession() {
         logger.info('Activating JARVIS session...');
-        this.wakeWord.stop(); // Stop wake word engine while active
+        this.wakeWord.stop(); // Pause wake word engine while active
 
+        this._notifyUI(STATES.ACTIVATING, 'Hey JARVIS');
         this.stateMachine.setState(STATES.ACTIVATING);
-        
+
         // Speak initial greeting "Yes?"
+        this._notifyUI(STATES.SPEAKING, 'Yes?');
         this.stateMachine.setState(STATES.SPEAKING);
         await this.tts.speak("Yes?");
 
+        this._notifyUI(STATES.LISTENING, '');
         this.stateMachine.setState(STATES.LISTENING);
         await this.runPersistentVoiceLoop();
     }
@@ -75,22 +87,25 @@ export class JarvisRuntime {
     async runPersistentVoiceLoop() {
         while (this.stateMachine.isActive() && !this.isShuttingDown) {
             try {
+                this._notifyUI(STATES.LISTENING, '');
                 this.stateMachine.setState(STATES.LISTENING);
+                
                 const spokenText = await this.stt.listen();
 
                 if (this.isShuttingDown) break;
 
-                // Handle empty input / silence timeout
+                // Handle silence timeout
                 if (!spokenText || !spokenText.trim()) {
-                    logger.debug('Silence or no speech recognized. Continuing active listening...');
+                    logger.debug('Silence detected. Remaining active...');
                     continue;
                 }
 
                 logger.info(`User: "${spokenText}"`);
-
+                this._notifyUI(STATES.PROCESSING, spokenText);
                 this.stateMachine.setState(STATES.PROCESSING);
+
                 const intent = commandRouter(spokenText);
-                logger.info(`Intent: ${intent.type} ${intent.action || ''}`);
+                logger.info(`Intent: ${intent.type} ${intent.actionType || intent.action || ''}`);
 
                 const shouldContinue = await this.handleIntent(intent, spokenText);
                 if (!shouldContinue) {
@@ -98,6 +113,7 @@ export class JarvisRuntime {
                 }
             } catch (err) {
                 logger.error(`Error in voice loop: ${err.message}`);
+                this._notifyUI(STATES.ERROR, 'Error occurred');
                 this.stateMachine.setState(STATES.ERROR);
                 await this.tts.speak("I encountered an error. Continuing to listen.");
                 this.stateMachine.setState(STATES.LISTENING);
@@ -107,55 +123,78 @@ export class JarvisRuntime {
 
     /**
      * Process routed intent and perform appropriate actions.
-     * @returns {Promise<boolean>} True to continue active loop, False to exit active loop (e.g. sleep/exit)
      */
     async handleIntent(intent, originalText) {
+        // Sleep / Standby
         if (intent.type === 'sleep') {
+            const msg = intent.message || "Going to standby.";
+            this._notifyUI(STATES.SPEAKING, msg);
             this.stateMachine.setState(STATES.SPEAKING);
-            await this.tts.speak(intent.message || "Going to standby.");
+            await this.tts.speak(msg);
+
+            this._notifyUI(STATES.STANDBY, '');
             this.stateMachine.setState(STATES.STANDBY);
             this.wakeWord.start();
             logger.info('JARVIS returned to STANDBY mode.');
             return false;
         }
 
+        // Exit / Shutdown
         if (intent.type === 'exit') {
+            const msg = intent.message || "Shutting down JARVIS.";
+            this._notifyUI(STATES.SPEAKING, msg);
             this.stateMachine.setState(STATES.SPEAKING);
-            await this.tts.speak(intent.message || "Shutting down JARVIS.");
+            await this.tts.speak(msg);
+
             this.stateMachine.setState(STATES.SHUTTING_DOWN);
             await this.shutdown();
             return false;
         }
 
+        // Clear Context Memory
         if (intent.type === 'clear_context') {
             this.brain.clearHistory();
+            const msg = "Conversation history cleared.";
+            this._notifyUI(STATES.SPEAKING, msg);
             this.stateMachine.setState(STATES.SPEAKING);
-            await this.tts.speak("Conversation history cleared.");
+            await this.tts.speak(msg);
             return true;
         }
 
-        if (intent.type === 'command') {
+        // Fast Path System & Application Commands (0 Qwen3 Calls!)
+        if (intent.type === 'system') {
+            this._notifyUI(STATES.EXECUTING, originalText);
             this.stateMachine.setState(STATES.EXECUTING);
-            const execResult = await this.appTool.execute(intent.action, intent.target);
-            
+
+            const result = await this.appTool.execute(intent.actionType, intent.target || '');
+
+            this._notifyUI(STATES.SPEAKING, result.message);
             this.stateMachine.setState(STATES.SPEAKING);
-            await this.tts.speak(execResult.message);
+            await this.tts.speak(result.message);
             return true;
         }
 
+        // AI Conversation / Reasoning Path (Qwen3)
         if (intent.type === 'chat') {
             if (!this.brain.isAvailable) {
-                // Try checking availability one more time
                 await this.brain.checkAvailability();
             }
 
             if (!this.brain.isAvailable) {
+                const errorMsg = "Ollama AI service is currently offline.";
+                this._notifyUI(STATES.SPEAKING, errorMsg);
                 this.stateMachine.setState(STATES.SPEAKING);
-                await this.tts.speak("Ollama AI service is currently unavailable.");
+                await this.tts.speak(errorMsg);
                 return true;
             }
 
+            // Immediately show THINKING on UI when Qwen starts processing
+            this._notifyUI(STATES.THINKING, originalText);
+            this.stateMachine.setState(STATES.THINKING);
+
             const aiReply = await this.brain.sendMessage(originalText);
+
+            this._notifyUI(STATES.SPEAKING, aiReply);
             this.stateMachine.setState(STATES.SPEAKING);
             await this.tts.speak(aiReply);
             return true;
@@ -168,7 +207,7 @@ export class JarvisRuntime {
      * CLI Development Mode fallback.
      */
     async runCliMode() {
-        logger.info('--- Running in CLI Development Mode ---');
+        logger.info('--- JARVIS v2 CLI Development Mode ---');
         logger.info('Type "Hey JARVIS" to activate, or type requests directly.');
         logger.info('Type "go to sleep" for standby, or "exit" to quit.\n');
 
@@ -235,6 +274,15 @@ export class JarvisRuntime {
         promptUser();
     }
 
+    _notifyUI(state, text = null) {
+        if (this.onStateChangeCallback) {
+            this.onStateChangeCallback({
+                newState: state,
+                payload: { text }
+            });
+        }
+    }
+
     _startOllamaHealthCheck() {
         if (this.healthCheckTimer) return;
         this.healthCheckTimer = setInterval(async () => {
@@ -245,7 +293,7 @@ export class JarvisRuntime {
                     this.healthCheckTimer = null;
                 }
             }
-        }, 30000); // Retry every 30 seconds
+        }, 15000); // Retry every 15 seconds
     }
 
     async shutdown() {

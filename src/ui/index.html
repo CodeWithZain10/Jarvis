@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>J.A.R.V.I.S Assistant</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="jarvis-card" id="dragRegion">
+        <div class="header">
+            <div class="brand">
+                <span class="logo-icon">⚡</span>
+                <span class="brand-name">J.A.R.V.I.S</span>
+            </div>
+            <div class="window-controls">
+                <button class="win-btn minimize" id="minBtn" title="Minimize to Tray">—</button>
+                <button class="win-btn close" id="closeBtn" title="Close / Exit">✕</button>
+            </div>
+        </div>
+
+        <div class="status-box" id="statusBox">
+            <div class="status-indicator" id="statusDot"></div>
+            <div class="status-text-group">
+                <div class="status-title" id="statusTitle">STANDBY</div>
+                <div class="status-subtitle" id="statusSubtitle">Say "Hey JARVIS"</div>
+            </div>
+        </div>
+
+        <div class="transcript-box" id="transcriptBox">
+            <div class="transcript-label" id="transcriptLabel">Awaiting wake phrase...</div>
+        </div>
+
+        <div class="footer-indicators">
+            <span class="badge" id="ollamaBadge">Ollama: Checking...</span>
+            <span class="badge" id="micBadge">Mic: Ready</span>
+            <span class="badge" id="wakeBadge">Wake: Active</span>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

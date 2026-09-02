@@ -1,0 +1,203 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    user-select: none;
+}
+
+body {
+    background: transparent;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+}
+
+.jarvis-card {
+    width: 100%;
+    height: 100%;
+    background: rgba(18, 24, 38, 0.88);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    color: #f1f5f9;
+    -webkit-app-region: drag;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.logo-icon {
+    font-size: 16px;
+    color: #38bdf8;
+    filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.8));
+}
+
+.brand-name {
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.window-controls {
+    display: flex;
+    gap: 6px;
+    -webkit-app-region: no-drag;
+}
+
+.win-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.win-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.win-btn.close:hover {
+    background: #ef4444;
+    color: #fff;
+    border-color: #ef4444;
+}
+
+.status-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #38bdf8;
+    box-shadow: 0 0 10px #38bdf8;
+    transition: all 0.3s ease;
+}
+
+/* Status States */
+.status-indicator.STANDBY {
+    background: #38bdf8;
+    box-shadow: 0 0 10px #38bdf8;
+}
+
+.status-indicator.LISTENING {
+    background: #3b82f6;
+    box-shadow: 0 0 14px #3b82f6;
+    animation: pulse 1.2s infinite ease-in-out;
+}
+
+.status-indicator.THINKING {
+    background: #a855f7;
+    box-shadow: 0 0 14px #a855f7;
+    animation: pulse 0.8s infinite ease-in-out;
+}
+
+.status-indicator.EXECUTING {
+    background: #f59e0b;
+    box-shadow: 0 0 14px #f59e0b;
+}
+
+.status-indicator.SPEAKING {
+    background: #10b981;
+    box-shadow: 0 0 14px #10b981;
+    animation: pulse 1s infinite ease-in-out;
+}
+
+.status-indicator.ERROR {
+    background: #ef4444;
+    box-shadow: 0 0 14px #ef4444;
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.95); opacity: 0.8; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.status-text-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.status-title {
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    color: #f8fafc;
+}
+
+.status-subtitle {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.transcript-box {
+    padding: 6px 4px;
+    font-size: 11px;
+    color: #cbd5e1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-height: 20px;
+}
+
+.footer-indicators {
+    display: flex;
+    gap: 6px;
+    justify-content: space-between;
+}
+
+.badge {
+    font-size: 9px;
+    padding: 3px 6px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #94a3b8;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.badge.online {
+    color: #34d399;
+    border-color: rgba(52, 211, 153, 0.2);
+}
+
+.badge.offline {
+    color: #f87171;
+    border-color: rgba(248, 113, 113, 0.2);
+}
