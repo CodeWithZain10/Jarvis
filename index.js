@@ -8,8 +8,6 @@ import logger from './src/utils/logger.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const testPassword = "mySecretPass123"
-
 const args = process.argv.slice(2);
 
 async function main() {
